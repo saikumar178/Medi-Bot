@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Medical AI Chatbot</title>
+<style>
+/* ---------- THEME VARIABLES ---------- */
+:root {
+  --bg: #f4f7fa;
+  --card: #ffffff;
+  --text: #1a1a1a;
+  --muted: #6c7683;
+  --accent: #0ea5e9;
+  --bubble-user: #dff4ff;
+  --bubble-bot: #ffffff;
+  --shadow: rgba(0,0,0,0.08);
+  --success: #10b981;
+  --danger: #ef4444;
+}
+
+/* Dark mode */ 
+body.dark {
+  --bg: #0b0f19;
+  --card: #141a2a;
+  --text: #e8edf5;
+  --muted: #9aa3b5;
+  --accent: #38bdf8;
+  --bubble-user: #0b4970;
+  --bubble-bot: #1b2236;
+  --shadow: rgba(0,0,0,0.35);
+}
+
+/* ---------- BASE UI ---------- */
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Inter, system-ui, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background .25s ease, color .25s ease;
+}
+
+.app {
+  width: 960px;
+  max-width: 96%;
+  height: 92vh;
+  background: var(--card);
+  border-radius: 16px;
+  box-shadow: 0 12px 30px var(--shadow);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* header */
+.header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom: 8px;
+}
+.logo { font-size:20px; font-weight:700; display:flex; gap:10px; align-items:center; }
+.logo .dot { width:12px; height:12px; background:var(--accent); border-radius:50%; display:inline-block; }
+
+/* disclaimer */
+.disclaimer { font-size:12px; color:var(--muted); margin-bottom:10px; }
+
+/* chat area */
+.chat {
+  flex:1;
+  overflow-y:auto;
+  padding:18px;
+  border-radius:12px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.01));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+}
+.msg { display:flex; margin-bottom:14px; gap:8px; align-items:flex-end; }
+.msg.bot { justify-content:flex-start; }
+.msg.user { justify-content:flex-end; }
+.bubble {
+  max-width:78%;
+  padding:12px 14px;
+  border-radius:12px;
+  line-height:1.45;
+  font-size:15px;
+  box-shadow: 0 6px 16px rgba(2,6,23,0.06);
+  white-space:pre-wrap;
+  word-wrap:break-word;
+}
+.msg.bot .bubble { background:var(--bubble-bot); border-bottom-left-radius:4px; color:var(--text); }
+.msg.user .bubble { background:var(--bubble-user); color:var(--text); border-bottom-right-radius:4px; }
+
+/* input area */
+.controls {
+  display:flex;
+  gap:10px;
+  margin-top:12px;
+  align-items:center;
+}
+.input {
+  flex:1;
+  display:flex;
+  gap:8px;
+}
+input[type="text"]{
+  flex:1;
+  padding:12px 14px;
+  border-radius:12px;
+  border:1px solid rgba(0,0,0,0.06);
+  background:var(--card);
+  color:var(--text);
+  outline:none;
+  font-size:15px;
+}
+.btn {
+  padding:10px 14px;
+  border-radius:10px;
+  border:0;
+  background:var(--accent);
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+}
+.btn:active{ transform:translateY(1px); }
+
+/* mic/stop buttons */
+.icon-btn {
+  width:46px;
+  height:46px;
+  border-radius:12px;
+  display:inline-grid;
+  place-items:center;
+  color:white;
+  font-size:18px;
+  cursor:pointer;
+  border:0;
+  outline:none;
+}
+.mic { background:linear-gradient(180deg,#fb923c,#ef4444); }
+.mic.listening { box-shadow:0 6px 20px rgba(239,68,68,0.18); transform:scale(1.04); }
+.stop { background:var(--danger); }
+.small { font-size:12px; color:var(--muted); margin-top:8px; }
+
+/* listening indicator (top-right) */
+.listen-indicator {
+  position:absolute;
+  right: 40px;
+  top: 18px;
+  background: rgba(59,130,246,0.08);
+  color: var(--accent);
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:12px;
+  display:none;
+  align-items:center;
+  gap:8px;
+  box-shadow:0 6px 20px rgba(2,6,23,0.06);
+}
+.listen-indicator.show { display:flex; }
+
+/* responsive */
+@media (max-width:640px){
+  .app{ height:96vh; padding:14px; }
+  .logo{ font-size:16px; }
+  .chat{ padding:12px; }
+  input[type="text"]{ font-size:14px; }
+}
+</style>
+</head>
+<body>
+  <div class="app" role="main">
+    <div class="header">
+      <div class="logo"><span class="dot"></span> Medical AI Chatbot</div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <div id="themeToggle" style="cursor:pointer;padding:8px 12px;border-radius:10px;border:1px solid rgba(0,0,0,0.06);font-size:13px;">🌙 Dark Mode</div>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      This assistant provides general health information only — <strong>not medical advice</strong>. For emergencies (chest pain, difficulty breathing, severe bleeding), seek immediate help.
+    </div>
+
+    <div class="chat" id="chat" aria-live="polite" aria-atomic="false"></div>
+
+    <div class="controls" style="position:relative;">
+      <div class="input">
+        <input id="textInput" type="text" placeholder="Ask about symptoms, medications, or health..." aria-label="Message input" />
+        <button id="sendBtn" class="btn">Send</button>
+      </div>
+
+      <button id="micBtn" class="icon-btn mic" title="Hold to speak / click to toggle">🎤</button>
+      <button id="stopBtn" class="icon-btn stop" title="Stop speech">🔇</button>
+
+      <div id="listenIndicator" class="listen-indicator"><span id="li-dot" style="width:9px;height:9px;border-radius:50%;background:var(--accent);display:inline-block;"></span><span id="li-text">Listening...</span></div>
+    </div>
+
+    <div class="small">Tip: Hold the mic to speak (Chrome/Edge recommended). Tap mic to toggle on mobile. Use localhost or HTTPS for microphone access.</div>
+  </div>
+
+<script>
+/* ---------- Helpers & UI ---------- */
+const chatEl = document.getElementById('chat');
+const textInput = document.getElementById('textInput');
+const sendBtn = document.getElementById('sendBtn');
+const micBtn = document.getElementById('micBtn');
+const stopBtn = document.getElementById('stopBtn');
+const themeToggle = document.getElementById('themeToggle');
+const listenIndicator = document.getElementById('listenIndicator');
+
+function appendMsg(text, who='bot'){
+  const wrapper = document.createElement('div');
+  wrapper.className = 'msg ' + (who === 'user' ? 'user' : 'bot');
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerText = text;
+  wrapper.appendChild(bubble);
+  chatEl.appendChild(wrapper);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+/* ---------- Text-to-Speech ---------- */
+function speak(text){
+  if(!("speechSynthesis" in window)) return;
+  try {
+    speechSynthesis.cancel();
+    const ut = new SpeechSynthesisUtterance(text);
+    ut.lang = 'en-US';
+    ut.rate = 1;
+    speechSynthesis.speak(ut);
+  } catch(e){
+    console.warn('TTS error', e);
+  }
+}
+stopBtn.addEventListener('click', ()=> { if('speechSynthesis' in window) speechSynthesis.cancel(); });
+
+/* ---------- Send message to server ---------- */
+async function sendToServer(text){
+  appendMsg('Thinking...', 'bot');
+  const bots = document.querySelectorAll('.msg.bot .bubble');
+  const lastBot = bots[bots.length - 1];
+  try {
+    const res = await fetch('/chat', {
+      method:'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ message: text })
+    });
+    const data = await res.json();
+    if(data && data.reply) {
+      lastBot.innerText = data.reply;
+      // If emergency flag, visually emphasize
+      if(data.emergency) {
+        lastBot.style.borderLeft = '4px solid var(--danger)';
+      } else {
+        lastBot.style.borderLeft = '';
+      }
+      speak(data.reply);
+    } else if(data && data.error) {
+      lastBot.innerText = 'Error: ' + data.error;
+      speak('Sorry, there was an error.');
+    } else {
+      lastBot.innerText = 'No reply';
+    }
+  } catch (err) {
+    lastBot.innerText = 'Network error.';
+    console.error(err);
+    speak('Network error. Please try again.');
+  }
+}
+
+/* ---------- Send typed message ---------- */
+sendBtn.addEventListener('click', ()=>{
+  const t = textInput.value.trim();
+  if(!t) return;
+  appendMsg(t, 'user');
+  textInput.value = '';
+  sendToServer(t);
+});
+textInput.addEventListener('keydown', (e)=> { if(e.key === 'Enter') sendBtn.click(); });
+
+/* ---------- THEME TOGGLE ---------- */
+themeToggle.addEventListener('click', ()=>{
+  document.body.classList.toggle('dark');
+  themeToggle.textContent = document.body.classList.contains('dark') ? '☀️ Light Mode' : '🌙 Dark Mode';
+});
+
+/* ---------- Robust Speech Recognition (hold-to-speak + toggle) ---------- */
+let recognition = null;
+let recognizing = false;
+let lastFinalTranscript = '';
+let interimTranscript = '';
+let prevInputBeforeRec = '';
+
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+
+if(!SR) {
+  micBtn.disabled = true;
+  micBtn.title = 'Speech recognition not supported (use Chrome/Edge)';
+  micBtn.style.opacity = 0.6;
+} else {
+  try {
+    recognition = new SR();
+    recognition.lang = 'en-US';
+    recognition.interimResults = true;   // get live interim
+    recognition.continuous = false;      // single result per start call
+
+    recognition.onstart = () => {
+      recognizing = true;
+      micBtn.classList.add('listening');
+      listenIndicator.classList.add('show');
+      prevInputBeforeRec = textInput.value || '';
+      lastFinalTranscript = '';
+      interimTranscript = '';
+      // update mic aria
+      micBtn.setAttribute('aria-pressed', 'true');
+    };
+
+    recognition.onresult = (ev) => {
+      interimTranscript = '';
+      let finalTranscript = '';
+      for(let i=0;i<ev.results.length;i++){
+        const r = ev.results[i];
+        if (r.isFinal) finalTranscript += r[0].transcript;
+        else interimTranscript += r[0].transcript;
+      }
+
+      if(finalTranscript){
+        const finalTrim = finalTranscript.trim();
+        if(finalTrim && finalTrim !== lastFinalTranscript){
+          lastFinalTranscript = finalTrim;
+          // append user bubble and send
+          appendMsg(finalTrim, 'user');
+          sendToServer(finalTrim);
+        }
+        // restore input to whatever user had (clean interim)
+        textInput.value = prevInputBeforeRec;
+      } else {
+        // show interim in input without permanently overwriting user's typed text
+        textInput.value = prevInputBeforeRec + interimTranscript;
+      }
+    };
+
+    recognition.onerror = (ev) => {
+      console.warn('Speech recognition error', ev);
+      if(ev.error === 'not-allowed' || ev.error === 'permission-denied'){
+        alert('Microphone access blocked. Please allow microphone permissions for this site in your browser settings.');
+      }
+    };
+
+    recognition.onend = () => {
+      recognizing = false;
+      micBtn.classList.remove('listening');
+      listenIndicator.classList.remove('show');
+      micBtn.setAttribute('aria-pressed', 'false');
+      // if there was interim but no final, restore typed content
+      if(!lastFinalTranscript){
+        textInput.value = prevInputBeforeRec;
+      }
+    };
+
+    // start/stop helpers
+    function startRec(){
+      if(!recognition) return;
+      try{
+        recognition.start();
+      } catch(e){
+        // start may throw if called twice quickly; ignore
+        console.warn('recognition.start() error', e);
+      }
+    }
+    function stopRec(){
+      if(!recognition) return;
+      try{ recognition.stop(); } catch(e){ console.warn('recognition.stop() error', e); }
+    }
+
+    // Hold-to-speak: mousedown/touchstart to start, mouseup/touchend anywhere to stop
+    micBtn.addEventListener('mousedown', (e)=>{ e.preventDefault(); startRec(); });
+    document.addEventListener('mouseup', ()=>{ if(recognizing) stopRec(); });
+
+    micBtn.addEventListener('touchstart', (e)=>{ e.preventDefault(); startRec(); }, {passive:false});
+    document.addEventListener('touchend', ()=>{ if(recognizing) stopRec(); });
+
+    // Tap-to-toggle (mobile friendly)
+    micBtn.addEventListener('click', (e)=>{
+      // if click followed immediately after touchstart, there may be duplicates; guard by checking recognizing
+      if(!recognition) return;
+      if(recognizing) stopRec(); else startRec();
+    });
+
+  } catch(err){
+    console.error('SpeechRecognition init error', err);
+    micBtn.disabled = true;
+    micBtn.title = 'Speech recognition error';
+  }
+}
+
+/* ---------- Welcome ---------- */
+appendMsg("Hello! I'm your medical information assistant. Ask me anything related to health, symptoms, or medications.", 'bot');
+speak("Hello! I can provide general health information. How can I help?");
+</script>
+</body>
+</html>
