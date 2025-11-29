@@ -1,16 +1,17 @@
 # Medi-Bot
 
-###How to run 
-- 1.clone the repo
-- 2.create a venv
+### How to run 
+- clone the repo
+- create a venv
     >python -m venv venv
-- 3.activate the venv 
+- activate the venv 
     >venv/Scripts/Activate
-- 4.install requirements
+- install requirements
     >pip install -r requirements.txt
-- 5.run the main app
+- run the main app
     >uvicorn main:app --reload --port 8000
 
-->make sure to keep GROQ_API_KEY in .env file
-->to deactivate venv
+### Note
+- make sure to keep GROQ_API_KEY in .env file
+- to deactivate venv
     >Deactivate
