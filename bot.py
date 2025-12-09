@@ -64,7 +64,7 @@ def call_groq_with_model_switch(user_text: str, model_primary: str, model_fallba
     """
     messages = [
         {"role": "system", "content": (
-            "You are a concise, safety-focused medical assistant. Keep answers short (2-4 sentences). if the topic is not about medical or health just say it's not related to medical or health "
+            "You are a concise, safety-focused medical assistant. Keep answers short (3-5 sentences). if the topic is not about medical or health just say it's not related to medical or health "
             "Never give exact prescription doses. If the user mentions emergency symptoms, begin with "
             "'This may be an emergency — seek immediate medical care.'"
         )},

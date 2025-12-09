@@ -1,6 +1,6 @@
-fastapi
-uvicorn[standard]
-groq
-python-dotenv
-pydantic
-aiofiles
+fastapi==0.124.0
+uvicorn[standard]==0.38.0
+groq==0.37.1
+python-dotenv==1.2.1
+pydantic==2.12.5
+aiofiles==25.1.0
